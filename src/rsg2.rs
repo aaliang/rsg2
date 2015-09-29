@@ -17,8 +17,12 @@ impl <'a> StreamMap <'a> {
     /// Adds a new Channel to the map
     ///
     pub fn add_channel (&mut self, topic: &str) -> Channel {
-        Channel::new(topic) 
+        Channel::new(topic)
     }
+}
+
+enum Snake {
+
 }
 
 pub struct Channel {
@@ -37,28 +41,39 @@ impl Channel {
         }
     }
 
-    fn add_message (self, wrapped_message: EventEnvelope) {
-        
-        let mut messages = self.messages;
+    fn add_message (&mut self, wrapped_message: EventEnvelope) {
 
-        match (messages.last()) {
-            None => messages.push(wrapped_message),
-            _ => messages.push(wrapped_message)
+        let mut total;
+
+        {
+            let last = self.last_message();
+
+            let mut _mid:Vec<EventEnvelope> = Vec::new();
+            let mut _end:Vec<EventEnvelope> = Vec::new();
+
+            let (mut begin, mut mid, mut end) = match last {
+                None => 
+                    (vec![wrapped_message], _mid, _end),
+                Some(a) =>
+                    (vec![wrapped_message], _mid, _end)
+            };
+
+            begin.extend(mid);
+            begin.extend(end);
+
+            total = begin;
         }
-        //match (messages.last()) {
-        //    None => 
-        //
-        //        messages.push(wrapped_message),
-        //    Some (a) =>
-        //        if (wrapped_message.timestamp >= a.timestamp) {
-        //            messages.push(wrapped_message)
-        //        }
-        //        else {
-        //            messages.push(wrapped_message)
-        //        }
-       // }
 
+        self.messages = total;
     }
+
+    fn last_message (&mut self) -> Option<&EventEnvelope> {
+        self.messages.last()
+    }
+}
+
+fn get_last_message (channel: &Channel) -> Option <&EventEnvelope> {
+    channel.messages.last()
 }
 
 pub struct EventEnvelope {
