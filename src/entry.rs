@@ -5,8 +5,8 @@ use rsg2::rsg2::{StreamMap};
 fn main () {
     let rsm = &mut StreamMap::new();
 
-    rsm.add_channel("topic1");
-    rsm.add_channel("topic2");
+    rsm.add_channel("topic1".to_string());
+    rsm.add_channel("topic2".to_string());
 
     let mut my_vec: Vec<i32> = Vec::new();
 

@@ -3,12 +3,12 @@ extern crate time;
 use std::collections::HashMap;
 
 /// A map of Channels
-pub struct StreamMap <'a> {
-    channels: HashMap<&'a str, Channel>
+pub struct StreamMap {
+    channels: HashMap<String, Channel >
 }
 
-impl <'a> StreamMap <'a> {
-    pub fn new () -> StreamMap <'a> {
+impl StreamMap {
+    pub fn new () -> StreamMap {
         StreamMap {
             channels: HashMap::new()
         }
@@ -16,13 +16,43 @@ impl <'a> StreamMap <'a> {
 
     /// Adds a new Channel to the map
     ///
-    pub fn add_channel (&mut self, topic: &str) -> Channel {
+    pub fn add_channel (&mut self, topic: String) -> Channel {
         Channel::new(topic)
     }
-}
 
-enum Snake {
+    /// Adds ONE message to multiple channels
+    pub fn add_message_to_channels (&mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
 
+        for chan in chan_list { 
+
+            //cheap hack. need a reference to preserve the lifetime of a new 
+            //Channel in the None arm. this is so i don't need lifetime annotations
+            let mut temp;
+
+            let (channel, exists) = match self.channels.get_mut(&chan.topic) {
+                Some (a) => (a, true),
+                None => {
+                    temp = Channel::new(chan.topic);
+                    (&mut temp, false)
+                }
+            };
+
+            
+
+
+
+            //let chan_handle = chan_opt.unwrap().insert(chan.topic.clone(), Channel::new(chan.topic));
+
+            /*let chan_handle = match chan_opt {
+                Some(ref a) => *a,
+                None => {
+                    let t = chan.topic.clone();
+                    let mut new_chan = Channel::new(chan.topic);
+                    &mut self.channels.insert(t, new_chan).unwrap()
+                }
+            };*/
+        }
+    }
 }
 
 pub struct Channel {
@@ -33,12 +63,16 @@ pub struct Channel {
 
 impl Channel {
 
-    pub fn new (channel_name: &str) -> Channel {
+    pub fn new <'a> (channel_name: String) -> Channel {
         Channel {
-            topic: channel_name.to_string(),
+            topic: channel_name,
             ttl: 30,
             messages: Vec::new()
         }
+    }
+
+    pub fn get_mut_ref <'a> (&'a self) -> &'a Channel {
+        self
     }
 
     pub fn add_message (&mut self, wrapped_message: EventEnvelope) {
@@ -61,7 +95,7 @@ impl Channel {
             fst.extend(snd);
 
             total = fst;
-        }  
+        }
     }
 
     fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
