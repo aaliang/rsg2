@@ -41,46 +41,54 @@ impl Channel {
         }
     }
 
-    fn add_message (&mut self, wrapped_message: EventEnvelope) {
-
+    pub fn add_message (&mut self, wrapped_message: EventEnvelope) {
         let mut total;
 
+        let blank = self.new_vec_envelope();
+
         {
-            let last = self.last_message();
-
-            let mut _mid:Vec<EventEnvelope> = Vec::new();
-            let mut _end:Vec<EventEnvelope> = Vec::new();
-
-            let (mut begin, mut mid, mut end) = match last {
-                None => 
-                    (vec![wrapped_message], _mid, _end),
-                Some(a) =>
-                    (vec![wrapped_message], _mid, _end)
+            let ll = {
+                self.messages.last()
             };
 
-            begin.extend(mid);
-            begin.extend(end);
+            let (mut fst, snd) = match ll {
+                None =>
+                    (vec![wrapped_message], blank),
+                Some(most_recent) =>
+                    if wrapped_message.timestamp >= most_recent.timestamp {
+                        (vec![wrapped_message], self.messages.to_vec())
+                    } else {
+                        (vec![wrapped_message], blank)
+                    }
+            };
 
-            total = begin;
+            fst.extend(snd);
+
+            total = fst;
         }
 
-        self.messages = total;
+        //let (f, s) = total;
+
+        //self.messages = f;
     }
 
-    fn last_message (&mut self) -> Option<&EventEnvelope> {
+    fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
+        let blank: Vec<EventEnvelope> = Vec::new();
+        blank
+    }
+
+    fn most_recent_message (&self) -> Option<&EventEnvelope> {
         self.messages.last()
     }
 }
 
-fn get_last_message (channel: &Channel) -> Option <&EventEnvelope> {
-    channel.messages.last()
-}
-
+#[derive(Clone)]
 pub struct EventEnvelope {
     contents: Message,
     timestamp: i32
 }
 
+#[derive(Clone)]
 enum Message {
     RegularMessage {text: String}
 }
