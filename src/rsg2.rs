@@ -47,11 +47,7 @@ impl Channel {
         let blank = self.new_vec_envelope();
 
         {
-            let ll = {
-                self.messages.last()
-            };
-
-            let (mut fst, snd) = match ll {
+            let (mut fst, snd) = match self.most_recent_message() {
                 None =>
                     (vec![wrapped_message], blank),
                 Some(most_recent) =>
@@ -65,11 +61,7 @@ impl Channel {
             fst.extend(snd);
 
             total = fst;
-        }
-
-        //let (f, s) = total;
-
-        //self.messages = f;
+        }  
     }
 
     fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
