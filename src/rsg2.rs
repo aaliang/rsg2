@@ -3,14 +3,16 @@ extern crate time;
 use std::collections::HashMap;
 
 /// A map of Channels
-pub struct StreamMap {
-    channels: HashMap<String, Channel >
+pub struct StreamMap <'a> {
+    channels: HashMap<String, Channel<'a>>,
+    message_master: Vec<EventEnvelope>
 }
 
-impl StreamMap {
-    pub fn new () -> StreamMap {
+impl <'a> StreamMap <'a> {
+    pub fn new () -> StreamMap <'a> {
         StreamMap {
-            channels: HashMap::new()
+            channels: HashMap::new(),
+            message_master: Vec::new()
         }
     }
 
@@ -21,7 +23,9 @@ impl StreamMap {
     }
 
     /// Adds ONE message to multiple channels
-    pub fn add_message_to_channels (&mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
+    pub fn add_message_to_channels (&'a mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
+        self.message_master.push(mesg);
+        let message_ref = &self.message_master.last().unwrap();
 
         for chan in chan_list { 
 
@@ -37,7 +41,7 @@ impl StreamMap {
                 }
             };
 
-            
+            channel.append(message_ref);
 
 
 
@@ -55,15 +59,15 @@ impl StreamMap {
     }
 }
 
-pub struct Channel {
+pub struct Channel <'a> {
     topic: String,
     ttl: i32,
-    messages: Vec<EventEnvelope>
+    messages: Vec<&'a EventEnvelope>
 }
 
-impl Channel {
+impl <'a> Channel <'a> {
 
-    pub fn new <'a> (channel_name: String) -> Channel {
+    pub fn new (channel_name: String) -> Channel <'a> {
         Channel {
             topic: channel_name,
             ttl: 30,
@@ -71,10 +75,11 @@ impl Channel {
         }
     }
 
-    pub fn get_mut_ref <'a> (&'a self) -> &'a Channel {
-        self
+    pub fn append (&mut self, wrapped_message: &'a EventEnvelope) {
+        self.messages.insert(0, wrapped_message);
     }
 
+    /* BROKEN by the changes with message_master
     pub fn add_message (&mut self, wrapped_message: EventEnvelope) {
         let mut total;
 
@@ -98,13 +103,15 @@ impl Channel {
         }
     }
 
+    pub fn most_recent_message (&self) {
+        self.messages.last()
+    }
+
+    */
+
     fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
         let blank: Vec<EventEnvelope> = Vec::new();
         blank
-    }
-
-    fn most_recent_message (&self) -> Option<&EventEnvelope> {
-        self.messages.last()
     }
 }
 
