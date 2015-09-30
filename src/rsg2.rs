@@ -33,32 +33,35 @@ impl <'a> StreamMap <'a> {
             //Channel in the None arm. this is so i don't need lifetime annotations
             let mut temp;
 
-            let (channel, exists) = match self.channels.get_mut(&chan.topic) {
-                Some (a) => (a, true),
-                None => {
-                    temp = Channel::new(chan.topic);
-                    (&mut temp, false)
-                }
+            let e = {
+                let (channel, exists) = {
+                    match self.channels.get_mut(&chan.topic) {
+                        Some (a) => {
+                            //this is an evil hack again. there is no purpose to clone, only to
+                            //trick the compiler
+                            temp = a.to_owned();
+                            (a, true)
+                        },
+                        None => {
+                            temp = Channel::new(chan.topic.clone());
+                            (&mut temp, false)
+                        }
+                    }
+                };
+
+                channel.append(message_ref);
+
+                exists
             };
 
-            channel.append(message_ref);
-
-
-
-            //let chan_handle = chan_opt.unwrap().insert(chan.topic.clone(), Channel::new(chan.topic));
-
-            /*let chan_handle = match chan_opt {
-                Some(ref a) => *a,
-                None => {
-                    let t = chan.topic.clone();
-                    let mut new_chan = Channel::new(chan.topic);
-                    &mut self.channels.insert(t, new_chan).unwrap()
-                }
-            };*/
+            if e == false {
+                self.channels.insert(chan.topic, temp);
+            }
         }
     }
 }
 
+#[derive(Clone)]
 pub struct Channel <'a> {
     topic: String,
     ttl: i32,
