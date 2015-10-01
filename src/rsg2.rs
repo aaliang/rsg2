@@ -23,18 +23,17 @@ impl <'a> StreamMap <'a> {
 
     /// Adds a new Channel to the map
     ///
-    pub fn add_channel (&mut self, topic: String) -> Channel {
+    pub fn add_channel (&self, topic: String) -> Channel {
         Channel::new(topic)
     }
 
     /// Adds ONE message to multiple channels
-    pub fn add_message_to_channels (&'a mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
+    pub fn append_message_to_channels (&'a mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
         self.message_master.push(mesg);
         let message_ref = &self.message_master.last().unwrap();
 
         for chan in chan_list { 
             let instance_state = {
-                //let (channel, exists) = {
                 match self.channels.get_mut(&chan.topic) {
                     Some (a) => {
                         a.append(message_ref);
@@ -47,15 +46,19 @@ impl <'a> StreamMap <'a> {
                     }
                 }
             };
-
             match instance_state {
                 ChanInstanceState::NewChannel(n_chan) => {
+                    //add the chan to the channels hashmap if it is new
                     self.channels.insert(chan.topic, n_chan);
                     ()
                 }
                 ChanInstanceState::ExistingChannel => ()
            };
         }
+    }
+
+    pub fn delete_message_from_master(&mut self) {
+        self.message_master.clear();
     }
 }
 
@@ -109,6 +112,11 @@ impl <'a> Channel <'a> {
     }
 
     */
+
+    /// clears messages
+    pub fn truncate (&mut self) {
+        self.messages.clear();
+    }
 
     fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
         let blank: Vec<EventEnvelope> = Vec::new();
