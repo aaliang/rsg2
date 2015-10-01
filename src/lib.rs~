@@ -1,9 +1,0 @@
-mod rsg2;
-
-#[test]
-fn it_works() {
-}
-
-pub fn something () {
-  println!("it works")
-}
