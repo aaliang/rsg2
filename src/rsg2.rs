@@ -2,6 +2,11 @@ extern crate time;
 
 use std::collections::HashMap;
 
+enum ChanInstanceState <'a> {
+    ExistingChannel,
+    NewChannel (Channel <'a>) 
+}
+
 /// A map of Channels
 pub struct StreamMap <'a> {
     channels: HashMap<String, Channel<'a>>,
@@ -28,35 +33,28 @@ impl <'a> StreamMap <'a> {
         let message_ref = &self.message_master.last().unwrap();
 
         for chan in chan_list { 
-
-            //cheap hack. need a reference to preserve the lifetime of a new 
-            //Channel in the None arm. this is so i don't need lifetime annotations
-            let mut temp;
-
-            let e = {
-                let (channel, exists) = {
-                    match self.channels.get_mut(&chan.topic) {
-                        Some (a) => {
-                            //this is an evil hack again. there is no purpose to clone, only to
-                            //trick the compiler
-                            temp = a.to_owned();
-                            (a, true)
-                        },
-                        None => {
-                            temp = Channel::new(chan.topic.clone());
-                            (&mut temp, false)
-                        }
+            let instance_state = {
+                //let (channel, exists) = {
+                match self.channels.get_mut(&chan.topic) {
+                    Some (a) => {
+                        a.append(message_ref);
+                        ChanInstanceState::ExistingChannel
+                    },
+                    None => {
+                        let mut new_chan = Channel::new(chan.topic.clone());
+                        new_chan.append(message_ref);
+                        ChanInstanceState::NewChannel(new_chan)
                     }
-                };
-
-                channel.append(message_ref);
-
-                exists
+                }
             };
 
-            if e == false {
-                self.channels.insert(chan.topic, temp);
-            }
+            match instance_state {
+                ChanInstanceState::NewChannel(n_chan) => {
+                    self.channels.insert(chan.topic, n_chan);
+                    ()
+                }
+                ChanInstanceState::ExistingChannel => ()
+           };
         }
     }
 }
