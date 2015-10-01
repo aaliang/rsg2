@@ -1,12 +1,14 @@
 extern crate rsg2;
 
-use rsg2::rsg2::{StreamMap};
+use rsg2::rsg2::{StreamMap,StandardMessage};
 
 fn main () {
-    let rsm = &mut StreamMap::new();
+    let rsm:StreamMap<StandardMessage> = StreamMap::new();
 
     let chan_1 = rsm.add_channel("topic1".to_string());
     let chan_2 = rsm.add_channel("topic2".to_string());
+
+//:rsm.add_message_to_channels();
 
     let mut my_vec: Vec<i32> = Vec::new();
 

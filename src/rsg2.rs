@@ -2,33 +2,43 @@ extern crate time;
 
 use std::collections::HashMap;
 
-enum ChanInstanceState <'a> {
+enum ChanInstanceState <'a, T: 'a> {
     ExistingChannel,
-    NewChannel (Channel <'a>) 
+    NewChannel (Channel <'a, T>) 
+}
+
+pub struct StandardMessage {
+    text: String
 }
 
 /// A map of Channels
-pub struct StreamMap <'a> {
-    channels: HashMap<String, Channel<'a>>,
-    message_master: Vec<EventEnvelope>
+pub struct StreamMap <'a, T: 'a> {
+    channels: HashMap<String, Channel<'a, T>>,
+    message_master: Vec<EventEnvelope<T>>
 }
 
-impl <'a> StreamMap <'a> {
-    pub fn new () -> StreamMap <'a> {
+impl <'a, T: 'a> StreamMap <'a, T> {
+
+    /// Instantiates a generic StreamMap
+    pub fn new () -> StreamMap <'a, T> {
+
+        let hm:HashMap<String, Channel<T>> = HashMap::new();
+        let mm:Vec<EventEnvelope<T>> = Vec::new();
+
         StreamMap {
-            channels: HashMap::new(),
-            message_master: Vec::new()
+            channels: hm,
+            message_master: mm
         }
     }
 
     /// Adds a new Channel to the map
     ///
-    pub fn add_channel (&self, topic: String) -> Channel {
+    pub fn add_channel (&self, topic: String) -> Channel <T> {
         Channel::new(topic)
     }
 
     /// Adds ONE message to multiple channels
-    pub fn append_message_to_channels (&'a mut self, mesg: EventEnvelope, chan_list: Vec<Channel>) {
+    pub fn append_message_to_channels (&'a mut self, mesg: EventEnvelope<T> , chan_list: Vec<Channel<T>>) {
         self.message_master.push(mesg);
         let message_ref = &self.message_master.last().unwrap();
 
@@ -62,16 +72,27 @@ impl <'a> StreamMap <'a> {
     }
 }
 
+/*impl <'a, T: 'a> StreamMap <'a, T> where T:StandardMessage {
+    pub fn new_std () -> StreamMap <'a, T> {
+        StreamMap {
+            channels: HashMap::new(),
+            message_master: Vec::new()
+        }
+    }
+}*/
+
+
+
 #[derive(Clone)]
-pub struct Channel <'a> {
+pub struct Channel <'a, T: 'a> {
     topic: String,
     ttl: i32,
-    messages: Vec<&'a EventEnvelope>
+    messages: Vec<&'a EventEnvelope<T>>
 }
 
-impl <'a> Channel <'a> {
+impl <'a, T> Channel <'a, T> {
 
-    pub fn new (channel_name: String) -> Channel <'a> {
+    pub fn new (channel_name: String) -> Channel <'a, T> {
         Channel {
             topic: channel_name,
             ttl: 30,
@@ -79,7 +100,7 @@ impl <'a> Channel <'a> {
         }
     }
 
-    pub fn append (&mut self, wrapped_message: &'a EventEnvelope) {
+    pub fn append (&mut self, wrapped_message: &'a EventEnvelope<T>) {
         self.messages.insert(0, wrapped_message);
     }
 
@@ -118,16 +139,27 @@ impl <'a> Channel <'a> {
         self.messages.clear();
     }
 
+    /*
     fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
         let blank: Vec<EventEnvelope> = Vec::new();
         blank
     }
+    */
 }
 
 #[derive(Clone)]
-pub struct EventEnvelope {
-    contents: Message,
-    timestamp: i32
+pub struct EventEnvelope <T> {
+    contents: T,
+    timestamp: u64
+}
+
+impl <T> EventEnvelope <T> {
+    pub fn new_message(contents: T) -> EventEnvelope <T> {
+        EventEnvelope {
+            contents: contents,
+            timestamp: time::precise_time_ns()
+        }
+    }
 }
 
 #[derive(Clone)]
