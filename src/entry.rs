@@ -24,12 +24,5 @@ fn main () {
 
     b_vec.push(3i32);
 
-/*    match last {
-        Some(&1i32) =>
-            b_vec.push(3i32),
-        _ =>
-            b_vec.push(4i32)
-    }
-*/
     
 }

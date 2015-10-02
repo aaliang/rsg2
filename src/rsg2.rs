@@ -21,10 +21,8 @@ impl <'a, T: 'a> StreamMap <'a, T> {
 
     /// Instantiates a generic StreamMap
     pub fn new () -> StreamMap <'a, T> {
-
         let hm:HashMap<String, Channel<T>> = HashMap::new();
         let mm:Vec<EventEnvelope<T>> = Vec::new();
-
         StreamMap {
             channels: hm,
             message_master: mm
@@ -58,10 +56,8 @@ impl <'a, T: 'a> StreamMap <'a, T> {
             };
             match instance_state {
                 ChanInstanceState::NewChannel(n_chan) => {
-                    //add the chan to the channels hashmap if it is new
                     self.channels.insert(chan.topic, n_chan);
-                    ()
-                }
+                },
                 ChanInstanceState::ExistingChannel => ()
            };
         }
@@ -71,17 +67,6 @@ impl <'a, T: 'a> StreamMap <'a, T> {
         self.message_master.clear();
     }
 }
-
-/*impl <'a, T: 'a> StreamMap <'a, T> where T:StandardMessage {
-    pub fn new_std () -> StreamMap <'a, T> {
-        StreamMap {
-            channels: HashMap::new(),
-            message_master: Vec::new()
-        }
-    }
-}*/
-
-
 
 #[derive(Clone)]
 pub struct Channel <'a, T: 'a> {
@@ -104,47 +89,33 @@ impl <'a, T> Channel <'a, T> {
         self.messages.insert(0, wrapped_message);
     }
 
-    /* BROKEN by the changes with message_master
-    pub fn add_message (&mut self, wrapped_message: EventEnvelope) {
-        let mut total;
+    pub fn add_to_correct_position (&mut self, wrapped_message: &'a EventEnvelope<T>) {
 
-        let blank = self.new_vec_envelope();
+        let is_empty = self.messages.is_empty();
 
-        {
-            let (mut fst, snd) = match self.most_recent_message() {
-                None =>
-                    (vec![wrapped_message], blank),
-                Some(most_recent) =>
-                    if wrapped_message.timestamp >= most_recent.timestamp {
-                        (vec![wrapped_message], self.messages.to_vec())
-                    } else {
-                        (vec![wrapped_message], blank)
-                    }
+        if is_empty {
+            self.messages.push(wrapped_message);
+        }
+        else {
+            let is_appendable = {
+                let most_recent = self.messages.last().unwrap();
+                most_recent.timestamp <= wrapped_message.timestamp
             };
-
-            fst.extend(snd);
-
-            total = fst;
+            if is_appendable {
+                self.messages.push(wrapped_message);
+            } else {
+               //TODO: yeah 
+            }
         }
     }
-
-    pub fn most_recent_message (&self) {
-        self.messages.last()
-    }
-
-    */
 
     /// clears messages
     pub fn truncate (&mut self) {
         self.messages.clear();
     }
 
-    /*
-    fn new_vec_envelope (&self) -> Vec<EventEnvelope> {
-        let blank: Vec<EventEnvelope> = Vec::new();
-        blank
+    pub fn get_position_to_insert (&self) {
     }
-    */
 }
 
 #[derive(Clone)]
